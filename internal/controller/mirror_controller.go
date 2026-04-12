@@ -8,8 +8,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/types"
+"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -400,8 +399,8 @@ func (r *MirrorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	mirrorMapHandler := handler.EnqueueRequestsFromMapFunc(sourceFromMirrorMapFunc)
 
-	labelSelector := labels.SelectorFromSet(labels.Set{LabelMirroredFrom: ""})
-	_ = labelSelector // used conceptually; actual filtering is via predicate
+	// Build the namespace-to-sources MapFunc for new-namespace fan-out.
+	nsMapFunc := NewNamespaceToSourcesMapFunc(mgr.GetClient())
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("mirror").
@@ -423,5 +422,10 @@ func (r *MirrorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(&corev1.Secret{}, mirrorMapHandler, driftPredicate).
 		// Drift detection: mirrored ConfigMaps → enqueue source ConfigMap.
 		Watches(&corev1.ConfigMap{}, mirrorMapHandler, driftPredicate).
+		// New Namespace → fan out to all mirroring-enabled sources.
+		Watches(&corev1.Namespace{},
+			handler.EnqueueRequestsFromMapFunc(nsMapFunc),
+			builder.WithPredicates(namespaceBecameActivePredicate),
+		).
 		Complete(r)
 }
