@@ -8,7 +8,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -382,7 +382,7 @@ func (r *MirrorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	// Allow-mirror predicate: only enqueue source resources with the annotation.
 	sourcePredicate := builder.WithPredicates(
 		allowMirrorPredicate,
-		predicate.Or(
+		predicate.Or[client.Object](
 			predicate.GenerationChangedPredicate{},
 			predicate.AnnotationChangedPredicate{},
 		),
@@ -391,7 +391,7 @@ func (r *MirrorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	// Drift detection predicate for mirrored resources.
 	driftPredicate := builder.WithPredicates(
 		mirroredResourcePredicate,
-		predicate.Or(
+		predicate.Or[client.Object](
 			predicate.ResourceVersionChangedPredicate{},
 			predicate.Funcs{DeleteFunc: func(event.DeleteEvent) bool { return true }},
 		),
@@ -412,7 +412,7 @@ func (r *MirrorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			&handler.EnqueueRequestForObject{},
 			builder.WithPredicates(
 				allowMirrorPredicate,
-				predicate.Or(
+				predicate.Or[client.Object](
 					predicate.GenerationChangedPredicate{},
 					predicate.AnnotationChangedPredicate{},
 				),
