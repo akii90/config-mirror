@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/akii90/config-mirror/internal/controller"
+	"github.com/akii90/config-mirror/internal/constants"
 )
 
 // invalidLabelChars matches any character that is not allowed in a Kubernetes label value.
@@ -24,7 +24,7 @@ func BuildMirroredFromValue(sourceNamespace, sourceName string) string {
 	raw := sourceNamespace + "-" + sourceName
 	sanitized := sanitizeLabelValue(raw)
 
-	if len(sanitized) <= controller.LabelValueMaxLen {
+	if len(sanitized) <= constants.LabelValueMaxLen {
 		return sanitized
 	}
 
@@ -32,7 +32,7 @@ func BuildMirroredFromValue(sourceNamespace, sourceName string) string {
 	hash := sha256.Sum256([]byte(raw))
 	hashHex := fmt.Sprintf("%x", hash[:5]) // 5 bytes → 10 hex chars
 
-	prefix := sanitized[:controller.LabelValuePrefixLen]
+	prefix := sanitized[:constants.LabelValuePrefixLen]
 	// Trim any trailing separator characters from the prefix to avoid invalid label endings.
 	prefix = strings.TrimRight(prefix, "-_.")
 

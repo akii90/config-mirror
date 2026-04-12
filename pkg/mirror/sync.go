@@ -7,7 +7,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/akii90/config-mirror/internal/controller"
+	"github.com/akii90/config-mirror/internal/constants"
 )
 
 // NeedsSyncSecret reports whether the target Secret's data differs from the source.
@@ -90,11 +90,15 @@ func mirrorObjectMeta(sourceNamespace, sourceName, sourceResourceVersion, target
 		Name:      sourceName,
 		Namespace: targetNamespace,
 		Labels: map[string]string{
-			controller.LabelMirroredFrom: BuildMirroredFromValue(sourceNamespace, sourceName),
+			constants.LabelMirroredFrom: BuildMirroredFromValue(sourceNamespace, sourceName),
 		},
 		Annotations: map[string]string{
-			controller.AnnotationSourceResourceVersion: sourceResourceVersion,
-			controller.AnnotationMirroredAt:            time.Now().UTC().Format(time.RFC3339),
+			constants.AnnotationSourceResourceVersion: sourceResourceVersion,
+			constants.AnnotationMirroredAt:            time.Now().UTC().Format(time.RFC3339),
+			// Store exact source coordinates so the drift-detection MapFunc can
+			// enqueue the right reconcile request without string reversal.
+			constants.AnnotationSourceNamespace: sourceNamespace,
+			constants.AnnotationSourceName:      sourceName,
 		},
 	}
 }
@@ -114,12 +118,14 @@ func ApplyMirrorSecret(source *corev1.Secret, target *corev1.Secret) {
 	if target.Annotations == nil {
 		target.Annotations = make(map[string]string)
 	}
-	target.Annotations[controller.AnnotationSourceResourceVersion] = source.ResourceVersion
-	target.Annotations[controller.AnnotationMirroredAt] = time.Now().UTC().Format(time.RFC3339)
+	target.Annotations[constants.AnnotationSourceResourceVersion] = source.ResourceVersion
+	target.Annotations[constants.AnnotationMirroredAt] = time.Now().UTC().Format(time.RFC3339)
+	target.Annotations[constants.AnnotationSourceNamespace] = source.Namespace
+	target.Annotations[constants.AnnotationSourceName] = source.Name
 	if target.Labels == nil {
 		target.Labels = make(map[string]string)
 	}
-	target.Labels[controller.LabelMirroredFrom] = BuildMirroredFromValue(source.Namespace, source.Name)
+	target.Labels[constants.LabelMirroredFrom] = BuildMirroredFromValue(source.Namespace, source.Name)
 }
 
 // ApplyMirrorConfigMap updates the fields of an existing target ConfigMap to match the source.
@@ -139,10 +145,12 @@ func ApplyMirrorConfigMap(source *corev1.ConfigMap, target *corev1.ConfigMap) {
 	if target.Annotations == nil {
 		target.Annotations = make(map[string]string)
 	}
-	target.Annotations[controller.AnnotationSourceResourceVersion] = source.ResourceVersion
-	target.Annotations[controller.AnnotationMirroredAt] = time.Now().UTC().Format(time.RFC3339)
+	target.Annotations[constants.AnnotationSourceResourceVersion] = source.ResourceVersion
+	target.Annotations[constants.AnnotationMirroredAt] = time.Now().UTC().Format(time.RFC3339)
+	target.Annotations[constants.AnnotationSourceNamespace] = source.Namespace
+	target.Annotations[constants.AnnotationSourceName] = source.Name
 	if target.Labels == nil {
 		target.Labels = make(map[string]string)
 	}
-	target.Labels[controller.LabelMirroredFrom] = BuildMirroredFromValue(source.Namespace, source.Name)
+	target.Labels[constants.LabelMirroredFrom] = BuildMirroredFromValue(source.Namespace, source.Name)
 }

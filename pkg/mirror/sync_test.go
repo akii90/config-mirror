@@ -6,7 +6,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/akii90/config-mirror/internal/controller"
+	"github.com/akii90/config-mirror/internal/constants"
 )
 
 // --- NeedsSyncSecret ---
@@ -88,13 +88,13 @@ func TestBuildMirrorSecret_Labels(t *testing.T) {
 	if got.Name != "my-secret" {
 		t.Errorf("name = %q, want my-secret", got.Name)
 	}
-	if got.Labels[controller.LabelMirroredFrom] == "" {
+	if got.Labels[constants.LabelMirroredFrom] == "" {
 		t.Error("LabelMirroredFrom must be set")
 	}
-	if got.Annotations[controller.AnnotationSourceResourceVersion] != "42" {
-		t.Errorf("AnnotationSourceResourceVersion = %q, want 42", got.Annotations[controller.AnnotationSourceResourceVersion])
+	if got.Annotations[constants.AnnotationSourceResourceVersion] != "42" {
+		t.Errorf("AnnotationSourceResourceVersion = %q, want 42", got.Annotations[constants.AnnotationSourceResourceVersion])
 	}
-	if got.Annotations[controller.AnnotationMirroredAt] == "" {
+	if got.Annotations[constants.AnnotationMirroredAt] == "" {
 		t.Error("AnnotationMirroredAt must be set")
 	}
 }
@@ -136,7 +136,7 @@ func TestBuildMirrorConfigMap_LabelsAndData(t *testing.T) {
 	if len(got.BinaryData["bin"]) == 0 {
 		t.Error("BinaryData must be copied")
 	}
-	if got.Labels[controller.LabelMirroredFrom] == "" {
+	if got.Labels[constants.LabelMirroredFrom] == "" {
 		t.Error("LabelMirroredFrom must be set")
 	}
 }

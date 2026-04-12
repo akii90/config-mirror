@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"github.com/akii90/config-mirror/internal/controller"
+	"github.com/akii90/config-mirror/internal/constants"
 )
 
 func newFakeClient(objs ...runtime.Object) *fake.ClientBuilder {
@@ -41,12 +41,12 @@ func TestEnsureFinalizer_Adds(t *testing.T) {
 	// Finalizer should now be set on the in-memory object.
 	found := false
 	for _, f := range secret.GetFinalizers() {
-		if f == controller.FinalizerCleanup {
+		if f == constants.FinalizerCleanup {
 			found = true
 		}
 	}
 	if !found {
-		t.Errorf("finalizer %q not found in object finalizers %v", controller.FinalizerCleanup, secret.GetFinalizers())
+		t.Errorf("finalizer %q not found in object finalizers %v", constants.FinalizerCleanup, secret.GetFinalizers())
 	}
 }
 
@@ -55,7 +55,7 @@ func TestEnsureFinalizer_Idempotent(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "test",
 			Namespace:  "default",
-			Finalizers: []string{controller.FinalizerCleanup},
+			Finalizers: []string{constants.FinalizerCleanup},
 		},
 	}
 	cl := newFakeClient(secret).Build()
@@ -74,7 +74,7 @@ func TestRemoveFinalizer_Removes(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "test",
 			Namespace:  "default",
-			Finalizers: []string{controller.FinalizerCleanup},
+			Finalizers: []string{constants.FinalizerCleanup},
 		},
 	}
 	cl := newFakeClient(secret).Build()
@@ -83,8 +83,8 @@ func TestRemoveFinalizer_Removes(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	for _, f := range secret.GetFinalizers() {
-		if f == controller.FinalizerCleanup {
-			t.Errorf("finalizer %q still present after removal", controller.FinalizerCleanup)
+		if f == constants.FinalizerCleanup {
+			t.Errorf("finalizer %q still present after removal", constants.FinalizerCleanup)
 		}
 	}
 }
@@ -110,7 +110,7 @@ func TestRemoveFinalizer_PreservesOtherFinalizers(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "test",
 			Namespace:  "default",
-			Finalizers: []string{other, controller.FinalizerCleanup},
+			Finalizers: []string{other, constants.FinalizerCleanup},
 		},
 	}
 	cl := newFakeClient(secret).Build()

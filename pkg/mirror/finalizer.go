@@ -6,7 +6,7 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/akii90/config-mirror/internal/controller"
+	"github.com/akii90/config-mirror/internal/constants"
 )
 
 // EnsureFinalizer adds the cleanup finalizer to obj if it is not already present.
@@ -14,10 +14,10 @@ import (
 // (false, nil) when the finalizer was already present (no API call made),
 // or (false, err) on an update failure.
 func EnsureFinalizer(ctx context.Context, c client.Client, obj client.Object) (added bool, err error) {
-	if slices.Contains(obj.GetFinalizers(), controller.FinalizerCleanup) {
+	if slices.Contains(obj.GetFinalizers(), constants.FinalizerCleanup) {
 		return false, nil
 	}
-	obj.SetFinalizers(append(obj.GetFinalizers(), controller.FinalizerCleanup))
+	obj.SetFinalizers(append(obj.GetFinalizers(), constants.FinalizerCleanup))
 	if err := c.Update(ctx, obj); err != nil {
 		return false, err
 	}
@@ -28,7 +28,7 @@ func EnsureFinalizer(ctx context.Context, c client.Client, obj client.Object) (a
 // If the finalizer is not present, this is a no-op and returns nil.
 func RemoveFinalizer(ctx context.Context, c client.Client, obj client.Object) error {
 	finalizers := obj.GetFinalizers()
-	idx := slices.Index(finalizers, controller.FinalizerCleanup)
+	idx := slices.Index(finalizers, constants.FinalizerCleanup)
 	if idx == -1 {
 		return nil
 	}
