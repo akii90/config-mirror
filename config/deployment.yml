@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: config-mirror
+  namespace: default
+  labels:
+    app: config-mirror
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: config-mirror
+  template:
+    metadata:
+      labels:
+        app: config-mirror
+    spec:
+      serviceAccountName: config-mirror
+      containers:
+        - name: config-mirror
+          image: docker.io/vilat/config-mirror:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - /config-mirror
