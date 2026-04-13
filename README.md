@@ -27,7 +27,9 @@ kubectl create -f config
 ```
 
 ## Cascading Updates & Deletes
-- **更新 (Update):** 同步更新所有符合条件的 Namespace 中的衍生资源。
+
+均通过关联 Label 管理
+- **更新 (Update):** 同步更新所有符合条件的 Namespace 中且携带关联 Label 的衍生资源。
 - **删除 (Delete):**
     - 为开启了 `allow-mirror=true` 的 Source 资源注入 Finalizer (如 `config-mirror.example.com/cleanup`)。
     - 当 Source 资源收到 Delete 请求变为 `Terminating` 状态时，Controller 拦截该事件。 获取所有关联的衍生资源并逐个删除。
