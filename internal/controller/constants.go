@@ -5,16 +5,11 @@ package controller
 import "github.com/akii90/config-mirror/internal/constants"
 
 const (
-	AnnotationAllowMirror           = constants.AnnotationAllowMirror
-	AnnotationAllowMirrorEnabled    = constants.AnnotationAllowMirrorEnabled
-	AnnotationNamespaceInclude      = constants.AnnotationNamespaceInclude
-	AnnotationNamespaceExclude      = constants.AnnotationNamespaceExclude
-	AnnotationSourceResourceVersion = constants.AnnotationSourceResourceVersion
-	AnnotationMirroredAt            = constants.AnnotationMirroredAt
-	AnnotationSourceNamespace       = constants.AnnotationSourceNamespace
-	AnnotationSourceName            = constants.AnnotationSourceName
-	LabelMirroredFrom               = constants.LabelMirroredFrom
-	FinalizerCleanup                = constants.FinalizerCleanup
-	LabelValueMaxLen                = constants.LabelValueMaxLen
-	LabelValuePrefixLen             = constants.LabelValuePrefixLen
+	AnnotationAllowMirror        = constants.AnnotationAllowMirror
+	AnnotationAllowMirrorEnabled = constants.AnnotationAllowMirrorEnabled
+	AnnotationNamespaceInclude   = constants.AnnotationNamespaceInclude
+	AnnotationNamespaceExclude   = constants.AnnotationNamespaceExclude
+	AnnotationSourceNamespace    = constants.AnnotationSourceNamespace
+	AnnotationSourceName         = constants.AnnotationSourceName
+	LabelMirroredFrom            = constants.LabelMirroredFrom
 )
