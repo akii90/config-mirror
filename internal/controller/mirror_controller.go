@@ -337,10 +337,34 @@ func toSet(names []string) map[string]struct{} {
 
 // ---- Predicates -----------------------------------------------------------
 
-// allowMirrorPredicate passes only objects with allow-mirror=true annotation.
-var allowMirrorPredicate = predicate.NewPredicateFuncs(func(obj client.Object) bool {
-	return obj.GetAnnotations()[AnnotationAllowMirror] == "true"
-})
+// sourcePredicate filters events for source Secret/ConfigMap resources.
+//
+// Secret and ConfigMap do not have a spec/status split, so .metadata.generation
+// is never incremented — only .metadata.resourceVersion changes on every write.
+// We therefore cannot use GenerationChangedPredicate here.
+//
+// For Update events we check EITHER ObjectOld OR ObjectNew carries allow-mirror=true.
+// This is essential for two transitions:
+//   - Data/annotation change while mirroring is active: both old and new have true.
+//   - allow-mirror turned from true → false: old has true, new has false.
+//     Without checking ObjectOld the event would be filtered and cleanup would
+//     never run.
+//   - DeletionTimestamp set (kubectl delete with finalizer): resourceVersion changes
+//     but generation and annotations do not — only ResourceVersionChanged fires.
+var sourcePredicate = predicate.Funcs{
+	CreateFunc: func(e event.CreateEvent) bool {
+		return e.Object.GetAnnotations()[AnnotationAllowMirror] == "true"
+	},
+	UpdateFunc: func(e event.UpdateEvent) bool {
+		oldOn := e.ObjectOld.GetAnnotations()[AnnotationAllowMirror] == "true"
+		newOn := e.ObjectNew.GetAnnotations()[AnnotationAllowMirror] == "true"
+		return oldOn || newOn
+	},
+	// Belt-and-suspenders: finalizer normally converts a hard delete into a
+	// DeletionTimestamp Update, but handle the Delete event just in case.
+	DeleteFunc:  func(e event.DeleteEvent) bool { return e.Object.GetAnnotations()[AnnotationAllowMirror] == "true" },
+	GenericFunc: func(_ event.GenericEvent) bool { return false },
+}
 
 // mirroredResourcePredicate passes only objects that carry the LabelMirroredFrom label.
 var mirroredResourcePredicate = predicate.NewPredicateFuncs(func(obj client.Object) bool {
@@ -364,16 +388,11 @@ func sourceFromMirrorMapFunc(_ context.Context, obj client.Object) []reconcile.R
 // ---- SetupWithManager -----------------------------------------------------
 
 func (r *MirrorReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	// Allow-mirror predicate: only enqueue source resources with the annotation.
-	sourcePredicate := builder.WithPredicates(
-		allowMirrorPredicate,
-		predicate.Or[client.Object](
-			predicate.GenerationChangedPredicate{},
-			predicate.AnnotationChangedPredicate{},
-		),
-	)
+	sourceOpt := builder.WithPredicates(sourcePredicate)
 
-	// Drift detection predicate for mirrored resources.
+	// Drift detection predicate for mirrored resources: any resourceVersion change
+	// or an explicit Delete event (in case the mirror is force-deleted without going
+	// through the normal garbage-collection path).
 	driftPredicate := builder.WithPredicates(
 		mirroredResourcePredicate,
 		predicate.Or[client.Object](
@@ -383,26 +402,15 @@ func (r *MirrorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	)
 
 	mirrorMapHandler := handler.EnqueueRequestsFromMapFunc(sourceFromMirrorMapFunc)
-
-	// Build the namespace-to-sources MapFunc for new-namespace fan-out.
 	nsMapFunc := NewNamespaceToSourcesMapFunc(mgr.GetClient())
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("mirror").
 		WithOptions(controller.Options{MaxConcurrentReconciles: 3}).
 		// Watch source Secrets.
-		For(&corev1.Secret{}, sourcePredicate).
-		// Watch source ConfigMaps.
-		Watches(&corev1.ConfigMap{},
-			&handler.EnqueueRequestForObject{},
-			builder.WithPredicates(
-				allowMirrorPredicate,
-				predicate.Or[client.Object](
-					predicate.GenerationChangedPredicate{},
-					predicate.AnnotationChangedPredicate{},
-				),
-			),
-		).
+		For(&corev1.Secret{}, sourceOpt).
+		// Watch source ConfigMaps (same predicate logic via Watches).
+		Watches(&corev1.ConfigMap{}, &handler.EnqueueRequestForObject{}, sourceOpt).
 		// Drift detection: mirrored Secrets → enqueue source Secret.
 		Watches(&corev1.Secret{}, mirrorMapHandler, driftPredicate).
 		// Drift detection: mirrored ConfigMaps → enqueue source ConfigMap.
