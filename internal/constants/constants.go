@@ -4,9 +4,11 @@ package constants
 
 const (
 	// Annotations configured on Source resources to control mirror behavior.
-	AnnotationAllowMirror      = "config-mirror.example.com/allow-mirror"
-	AnnotationNamespaceInclude = "config-mirror.example.com/namespace-include"
-	AnnotationNamespaceExclude = "config-mirror.example.com/namespace-exclude"
+	AnnotationAllowMirror = "config-mirror.example.com/allow-mirror"
+	// AnnotationAllowMirrorEnabled is the value that activates mirroring.
+	AnnotationAllowMirrorEnabled = "true"
+	AnnotationNamespaceInclude   = "config-mirror.example.com/namespace-include"
+	AnnotationNamespaceExclude   = "config-mirror.example.com/namespace-exclude"
 
 	// Annotations written onto mirrored (target) resources.
 	AnnotationSourceResourceVersion = "config-mirror.example.com/source-resource-version"

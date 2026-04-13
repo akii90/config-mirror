@@ -17,7 +17,11 @@ import (
 //
 // Each pattern is treated as a full-match regular expression (anchored with ^ and $).
 // An empty includePatterns list means "all namespaces".
-func MatchNamespaces(nsList []corev1.Namespace, sourceNamespace string, includePatterns, excludePatterns []string) []string {
+func MatchNamespaces(
+	nsList []corev1.Namespace,
+	sourceNamespace string,
+	includePatterns, excludePatterns []string,
+) []string {
 	includeREs := compilePatterns(includePatterns)
 	excludeREs := compilePatterns(excludePatterns)
 
@@ -26,7 +30,7 @@ func MatchNamespaces(nsList []corev1.Namespace, sourceNamespace string, includeP
 	// from silently becoming "include all".
 	hasIncludeFilter := len(includePatterns) > 0
 
-	var result []string
+	result := make([]string, 0, len(nsList))
 	for _, ns := range nsList {
 		name := ns.Name
 

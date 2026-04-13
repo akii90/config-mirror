@@ -59,7 +59,7 @@ func (r *MirrorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 func (r *MirrorReconciler) reconcileSecret(ctx context.Context, src *corev1.Secret) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx).WithValues("source", src.Namespace+"/"+src.Name)
 
-	mirrorEnabled := src.Annotations[AnnotationAllowMirror] == "true"
+	mirrorEnabled := src.Annotations[AnnotationAllowMirror] == AnnotationAllowMirrorEnabled
 
 	// Handle deletion (DeletionTimestamp set) or mirror disabled.
 	if !src.DeletionTimestamp.IsZero() || !mirrorEnabled {
@@ -183,7 +183,7 @@ func (r *MirrorReconciler) deleteOrphanSecrets(ctx context.Context, srcNS, srcNa
 func (r *MirrorReconciler) reconcileConfigMap(ctx context.Context, src *corev1.ConfigMap) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx).WithValues("source", src.Namespace+"/"+src.Name)
 
-	mirrorEnabled := src.Annotations[AnnotationAllowMirror] == "true"
+	mirrorEnabled := src.Annotations[AnnotationAllowMirror] == AnnotationAllowMirrorEnabled
 
 	if !src.DeletionTimestamp.IsZero() || !mirrorEnabled {
 		if err := r.cleanupMirroredConfigMaps(ctx, src.Namespace, src.Name); err != nil {
@@ -353,16 +353,18 @@ func toSet(names []string) map[string]struct{} {
 //     but generation and annotations do not — only ResourceVersionChanged fires.
 var sourcePredicate = predicate.Funcs{
 	CreateFunc: func(e event.CreateEvent) bool {
-		return e.Object.GetAnnotations()[AnnotationAllowMirror] == "true"
+		return e.Object.GetAnnotations()[AnnotationAllowMirror] == AnnotationAllowMirrorEnabled
 	},
 	UpdateFunc: func(e event.UpdateEvent) bool {
-		oldOn := e.ObjectOld.GetAnnotations()[AnnotationAllowMirror] == "true"
-		newOn := e.ObjectNew.GetAnnotations()[AnnotationAllowMirror] == "true"
+		oldOn := e.ObjectOld.GetAnnotations()[AnnotationAllowMirror] == AnnotationAllowMirrorEnabled
+		newOn := e.ObjectNew.GetAnnotations()[AnnotationAllowMirror] == AnnotationAllowMirrorEnabled
 		return oldOn || newOn
 	},
 	// Belt-and-suspenders: finalizer normally converts a hard delete into a
 	// DeletionTimestamp Update, but handle the Delete event just in case.
-	DeleteFunc:  func(e event.DeleteEvent) bool { return e.Object.GetAnnotations()[AnnotationAllowMirror] == "true" },
+	DeleteFunc: func(e event.DeleteEvent) bool {
+		return e.Object.GetAnnotations()[AnnotationAllowMirror] == AnnotationAllowMirrorEnabled
+	},
 	GenericFunc: func(_ event.GenericEvent) bool { return false },
 }
 

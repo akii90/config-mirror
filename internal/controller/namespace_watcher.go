@@ -70,7 +70,7 @@ func NewNamespaceToSourcesMapFunc(c client.Client) handler.MapFunc {
 		// Fan out to all mirroring-enabled Secrets.
 		secretList := &corev1.SecretList{}
 		if err := c.List(ctx, secretList, client.MatchingFields{
-			allowMirrorIndexField: "true",
+			allowMirrorIndexField: AnnotationAllowMirrorEnabled,
 		}); err != nil {
 			log.Error(err, "failed to list mirroring secrets for namespace fan-out")
 		} else {
@@ -87,7 +87,7 @@ func NewNamespaceToSourcesMapFunc(c client.Client) handler.MapFunc {
 		// Fan out to all mirroring-enabled ConfigMaps.
 		cmList := &corev1.ConfigMapList{}
 		if err := c.List(ctx, cmList, client.MatchingFields{
-			allowMirrorIndexField: "true",
+			allowMirrorIndexField: AnnotationAllowMirrorEnabled,
 		}); err != nil {
 			log.Error(err, "failed to list mirroring configmaps for namespace fan-out")
 		} else {

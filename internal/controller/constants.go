@@ -6,6 +6,7 @@ import "github.com/akii90/config-mirror/internal/constants"
 
 const (
 	AnnotationAllowMirror           = constants.AnnotationAllowMirror
+	AnnotationAllowMirrorEnabled    = constants.AnnotationAllowMirrorEnabled
 	AnnotationNamespaceInclude      = constants.AnnotationNamespaceInclude
 	AnnotationNamespaceExclude      = constants.AnnotationNamespaceExclude
 	AnnotationSourceResourceVersion = constants.AnnotationSourceResourceVersion
