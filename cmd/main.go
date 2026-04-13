@@ -20,6 +20,9 @@ import (
 	"flag"
 	"github.com/akii90/config-mirror/internal/controller"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"time"
+
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -48,10 +51,16 @@ func main() {
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
+	// SyncPeriod=0 disables the informer's periodic resync. Drift is detected
+	// reactively by watching mirrored (target) resources instead.
+	noResync := time.Duration(0)
+
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme: scheme,
-		// Resync is disabled; drift is detected by Watching target resources.
-		// SyncPeriod defaults to 10h in controller-runtime; set to 0 to disable.
+		// level-driven, disable resync
+		Cache: cache.Options{
+			SyncPeriod: &noResync,
+		},
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
