@@ -9,7 +9,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -26,13 +25,11 @@ import (
 // the allow-mirror annotation, syncing their contents to target namespaces.
 type MirrorReconciler struct {
 	client.Client
-	Recorder record.EventRecorder
 }
 
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch
-// +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 
 func (r *MirrorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
@@ -72,9 +69,6 @@ func (r *MirrorReconciler) reconcileSecret(ctx context.Context, src *corev1.Secr
 		if err := mirror.RemoveFinalizer(ctx, r.Client, src); err != nil {
 			return ctrl.Result{}, fmt.Errorf("remove finalizer from secret: %w", err)
 		}
-		if mirrorEnabled {
-			r.Recorder.Eventf(src, corev1.EventTypeNormal, "MirrorCleaned", "all mirrored secrets deleted")
-		}
 		return ctrl.Result{}, nil
 	}
 
@@ -108,12 +102,9 @@ func (r *MirrorReconciler) reconcileSecret(ctx context.Context, src *corev1.Secr
 	}
 
 	if len(failedNS) > 0 {
-		r.Recorder.Eventf(src, corev1.EventTypeWarning, "MirrorSyncFailed",
-			"sync failed for namespaces: %s", strings.Join(failedNS, ", "))
+		log.Error(nil, "sync partially failed", "failedNamespaces", strings.Join(failedNS, ", "))
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
-	r.Recorder.Eventf(src, corev1.EventTypeNormal, "MirrorSynced",
-		"synced to %d namespace(s)", len(targetNSNames))
 	return ctrl.Result{}, nil
 }
 
@@ -201,9 +192,6 @@ func (r *MirrorReconciler) reconcileConfigMap(ctx context.Context, src *corev1.C
 		if err := mirror.RemoveFinalizer(ctx, r.Client, src); err != nil {
 			return ctrl.Result{}, fmt.Errorf("remove finalizer from configmap: %w", err)
 		}
-		if mirrorEnabled {
-			r.Recorder.Eventf(src, corev1.EventTypeNormal, "MirrorCleaned", "all mirrored configmaps deleted")
-		}
 		return ctrl.Result{}, nil
 	}
 
@@ -233,12 +221,9 @@ func (r *MirrorReconciler) reconcileConfigMap(ctx context.Context, src *corev1.C
 	}
 
 	if len(failedNS) > 0 {
-		r.Recorder.Eventf(src, corev1.EventTypeWarning, "MirrorSyncFailed",
-			"sync failed for namespaces: %s", strings.Join(failedNS, ", "))
+		log.Error(nil, "sync partially failed", "failedNamespaces", strings.Join(failedNS, ", "))
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
-	r.Recorder.Eventf(src, corev1.EventTypeNormal, "MirrorSynced",
-		"synced to %d namespace(s)", len(targetNSNames))
 	return ctrl.Result{}, nil
 }
 

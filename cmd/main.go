@@ -125,12 +125,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Initialize EventRecorder for MirrorReconciler.
-	recorder := mgr.GetEventRecorderFor("config-mirror-controller")
-
 	if err := (&controller.MirrorReconciler{
-		Client:   mgr.GetClient(),
-		Recorder: recorder,
+		Client: mgr.GetClient(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create MirrorReconciler")
 		os.Exit(1)
